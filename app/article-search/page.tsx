@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import ArticleCard, { Article } from "@/components/ArticleCard";
 import ExportButton, { downloadJson } from "@/components/ExportButton";
+import { ARTICLE_SEARCH_PAGE_SIZE, NYT_SEARCH_MAX_ARTICLES } from "@/app/lib/article-search-pagination.mjs";
 
 const SORT_OPTIONS = [
   { value: "best", label: "Best Match" },
@@ -15,10 +16,8 @@ const SORT_OPTIONS = [
 interface SearchMeta {
   hits: number;
   offset: number;
+  page_size?: number;
 }
-
-/** NYT caps pagination at 100 pages × 10 docs */
-const NYT_SEARCH_MAX_PAGES = 100;
 
 export default function ArticleSearchPage() {
   const [q, setQ] = useState("");
@@ -36,6 +35,21 @@ export default function ArticleSearchPage() {
   const [exportAllBusy, setExportAllBusy] = useState(false);
   const [exportAllStatus, setExportAllStatus] = useState("");
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const nextQ = params.get("q") ?? "";
+    const nextFq = params.get("fq") ?? "";
+    const nextSort = params.get("sort") ?? "best";
+    const nextBegin = params.get("begin_date")?.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3") ?? "";
+    const nextEnd = params.get("end_date")?.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3") ?? "";
+
+    setQ(nextQ);
+    setFq(nextFq);
+    setSort(nextSort);
+    setBeginDate(nextBegin);
+    setEndDate(nextEnd);
+  }, []);
+
   const toNYTDate = (d: string) => d.replace(/-/g, "");
 
   function buildSearchParams(pageNum: number) {
@@ -49,11 +63,18 @@ export default function ArticleSearchPage() {
     return params;
   }
 
+  function syncUrl(pageNum: number) {
+    const params = buildSearchParams(pageNum);
+    const nextUrl = params.toString() ? `/article-search?${params.toString()}` : "/article-search";
+    window.history.replaceState(null, "", nextUrl);
+  }
+
   async function search(p: number = 0) {
     if (!q.trim() && !fq.trim()) {
       setError("Enter a keyword or filter query.");
       return;
     }
+    syncUrl(p);
     setLoading(true);
     setError("");
     setPage(p);
@@ -75,8 +96,8 @@ export default function ArticleSearchPage() {
     }
   }
 
-  const totalPages = meta ? Math.min(Math.ceil(meta.hits / 10), NYT_SEARCH_MAX_PAGES) : 0;
-  const exportableCap = meta ? Math.min(meta.hits, NYT_SEARCH_MAX_PAGES * 10) : 0;
+  const totalPages = meta ? Math.min(Math.ceil(meta.hits / ARTICLE_SEARCH_PAGE_SIZE), Math.ceil(NYT_SEARCH_MAX_ARTICLES / ARTICLE_SEARCH_PAGE_SIZE)) : 0;
+  const exportableCap = meta ? Math.min(meta.hits, NYT_SEARCH_MAX_ARTICLES) : 0;
 
   async function exportAllPages() {
     if (!meta || totalPages < 1) return;
@@ -97,7 +118,7 @@ export default function ArticleSearchPage() {
         if (docs.length === 0) break;
         allDocs.push(...docs);
       }
-      const truncatedByApi = meta.hits > NYT_SEARCH_MAX_PAGES * 10;
+      const truncatedByApi = meta.hits > NYT_SEARCH_MAX_ARTICLES;
       downloadJson(
         {
           exportedAt: new Date().toISOString(),
@@ -111,7 +132,7 @@ export default function ArticleSearchPage() {
           totalHitsReportedByApi: meta.hits,
           articlesInThisFile: allDocs.length,
           note: truncatedByApi
-            ? `The NYT Article Search API returns at most ${NYT_SEARCH_MAX_PAGES} pages (up to ${NYT_SEARCH_MAX_PAGES * 10} articles). Total hits (${meta.hits.toLocaleString()}) exceed that cap; this file contains every article available through pagination.`
+            ? `The NYT Article Search API returns at most 100 upstream pages (up to ${NYT_SEARCH_MAX_ARTICLES} articles). Total hits (${meta.hits.toLocaleString()}) exceed that cap; this file contains every article available through pagination.`
             : undefined,
           docs: allDocs,
         },
@@ -129,12 +150,12 @@ export default function ArticleSearchPage() {
     <div className="flex flex-col h-full">
       <PageHeader
         title="Article Search"
-        description="Search NYT articles back to 1851 using keywords and filters"
+        description="Search NYT articles back to 1851 using keywords and filters, with 25 results per page in the dashboard"
       />
 
       {/* Controls */}
-      <div className="bg-white border-b border-[#e2e2e2] px-8 py-5">
-        <div className="grid gap-4" style={{ gridTemplateColumns: "1fr 1fr" }}>
+      <div className="page-frame page-controls border-b border-black/10 bg-white/65 py-5">
+        <div className="grid gap-4 lg:grid-cols-2">
           {/* Keyword */}
           <div>
             <label htmlFor="as-keyword" className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
@@ -231,7 +252,7 @@ export default function ArticleSearchPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
+      <div className="page-frame page-content flex-1 overflow-y-auto">
         {error && (
           <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
             {error}
@@ -246,7 +267,7 @@ export default function ArticleSearchPage() {
 
         {!loading && articles.length > 0 && (
           <>
-            <div className="mb-5 rounded-xl border border-[#e2e2e2] bg-white px-5 py-4 shadow-sm space-y-3">
+            <div className="soft-panel mb-5 space-y-3 rounded-[1.4rem] px-5 py-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <p className="text-sm text-gray-700">
                   <span className="font-semibold text-[#1a1a2e]">{articles.length}</span>
@@ -278,9 +299,9 @@ export default function ArticleSearchPage() {
                   )}
                 </div>
               </div>
-              {meta != null && meta.hits > NYT_SEARCH_MAX_PAGES * 10 && (
+              {meta != null && meta.hits > NYT_SEARCH_MAX_ARTICLES && (
                 <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-                  NYT limits search to {NYT_SEARCH_MAX_PAGES} pages ({NYT_SEARCH_MAX_PAGES * 10} articles). Your query has more hits than that; “All results” downloads the maximum the API allows.
+                  NYT limits search to 1,000 retrievable articles. Your query has more hits than that; “All results” downloads the maximum the API allows.
                 </p>
               )}
               {exportAllStatus && (
@@ -330,7 +351,7 @@ function SkeletonList() {
   return (
     <div className="space-y-4">
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="bg-white rounded-xl p-4 border border-[#e2e2e2] flex gap-4">
+        <div key={i} className="soft-panel flex gap-4 rounded-[1.4rem] p-4">
           <div className="skeleton flex-shrink-0" style={{ width: "120px", height: "80px", borderRadius: "8px" }} />
           <div className="flex-1 space-y-2">
             <div className="skeleton h-3 w-16" />

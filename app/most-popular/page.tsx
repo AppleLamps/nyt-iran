@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import ArticleCard, { Article } from "@/components/ArticleCard";
 import ExportButton from "@/components/ExportButton";
+import { parseMostPopularState, toMostPopularQuery } from "@/app/lib/explorer-url-state.mjs";
 
 const TYPES = [
   { value: "viewed", label: "Most Viewed" },
@@ -18,14 +19,20 @@ const PERIODS = [
 ];
 
 export default function MostPopularPage() {
-  const [type, setType] = useState("viewed");
-  const [period, setPeriod] = useState("1");
+  const [type, setType] = useState(() =>
+    typeof window === "undefined" ? "viewed" : parseMostPopularState(window.location.search).type,
+  );
+  const [period, setPeriod] = useState(() =>
+    typeof window === "undefined" ? "1" : parseMostPopularState(window.location.search).period,
+  );
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fetched, setFetched] = useState(false);
+  const autoLoaded = useRef(false);
 
-  async function load() {
+  const load = useCallback(async () => {
+    window.history.replaceState(null, "", `/most-popular${toMostPopularQuery({ type, period })}`);
     setLoading(true);
     setError("");
     try {
@@ -41,7 +48,13 @@ export default function MostPopularPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [period, type]);
+
+  useEffect(() => {
+    if (autoLoaded.current) return;
+    autoLoaded.current = true;
+    void load();
+  }, [load]);
 
   const activeType = TYPES.find((t) => t.value === type);
 
@@ -53,7 +66,7 @@ export default function MostPopularPage() {
       />
 
       {/* Controls */}
-      <div className="bg-white border-b border-[#e2e2e2] px-8 py-4 flex items-end gap-4 flex-wrap">
+      <div className="page-frame page-controls flex flex-wrap items-end gap-4 border-b border-black/10 bg-white/65 py-4">
         {/* Type tabs */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
@@ -112,7 +125,7 @@ export default function MostPopularPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
+      <div className="page-frame page-content flex-1 overflow-y-auto">
         {error && (
           <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
             {error}
@@ -137,7 +150,7 @@ export default function MostPopularPage() {
                 {activeType?.label} · {PERIODS.find((p) => p.value === period)?.label}
               </span>
             </div>
-            <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
+            <div className="results-grid">
               {articles.map((a, i) => (
                 <ArticleCard key={(a as { id?: number }).id ?? i} article={a} />
               ))}
@@ -158,9 +171,9 @@ export default function MostPopularPage() {
 
 function SkeletonGrid() {
   return (
-    <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
+    <div className="results-grid">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="bg-white rounded-xl overflow-hidden border border-[#e2e2e2]">
+        <div key={i} className="soft-panel overflow-hidden rounded-[1.4rem]">
           <div className="skeleton" style={{ height: "160px" }} />
           <div className="p-4 space-y-2">
             <div className="skeleton h-3 w-16" />

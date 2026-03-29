@@ -60,7 +60,7 @@ export default function ArchivePage() {
 
       {/* Warning banner */}
       <div
-        className="px-8 py-2 flex items-center gap-2 text-xs"
+        className="page-frame page-controls flex items-center gap-2 py-2 text-xs"
         style={{ backgroundColor: "#fffbeb", borderBottom: "1px solid #fde68a", color: "#92400e" }}
       >
         <span>⚠</span>
@@ -70,8 +70,8 @@ export default function ArchivePage() {
       </div>
 
       {/* Controls */}
-      <div className="bg-white border-b border-[#e2e2e2] px-8 py-4 flex items-end gap-4 flex-wrap">
-        <div>
+      <div className="page-frame page-controls flex flex-wrap items-end gap-4 border-b border-black/10 bg-white/65 py-4">
+        <div className="min-w-[8rem]">
           <label htmlFor="archive-year" className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
             Year
           </label>
@@ -88,7 +88,7 @@ export default function ArchivePage() {
           </select>
         </div>
 
-        <div>
+        <div className="min-w-[10rem]">
           <label htmlFor="archive-month" className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
             Month
           </label>
@@ -105,7 +105,7 @@ export default function ArchivePage() {
           </select>
         </div>
 
-        <div>
+        <div className="min-w-[11rem]">
           <label htmlFor="archive-section" className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
             Section filter
           </label>
@@ -120,7 +120,7 @@ export default function ArchivePage() {
           />
         </div>
 
-        <div>
+        <div className="min-w-[11rem]">
           <label htmlFor="archive-keyword" className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
             Keyword filter
           </label>
@@ -151,7 +151,7 @@ export default function ArchivePage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
+      <div className="page-frame page-content flex-1 overflow-y-auto">
         {error && (
           <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
             {error}
@@ -189,7 +189,7 @@ export default function ArchivePage() {
                 <p className="text-sm">No articles matched your filters.</p>
               </div>
             ) : (
-              <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
+              <div className="results-grid">
                 {result.docs.map((a, i) => (
                   <ArticleCard key={(a as { _id?: string })._id ?? i} article={a} />
                 ))}

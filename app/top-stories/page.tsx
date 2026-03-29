@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import PageHeader from "@/components/PageHeader";
 import ArticleCard, { Article } from "@/components/ArticleCard";
 import ExportButton from "@/components/ExportButton";
+import { parseTopStoriesState, toTopStoriesQuery } from "@/app/lib/explorer-url-state.mjs";
 
 const SECTIONS = [
   "home", "arts", "automobiles", "books/review", "business", "fashion",
@@ -14,13 +15,17 @@ const SECTIONS = [
 ];
 
 export default function TopStoriesPage() {
-  const [section, setSection] = useState("home");
+  const [section, setSection] = useState(() =>
+    typeof window === "undefined" ? "home" : parseTopStoriesState(window.location.search).section,
+  );
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fetched, setFetched] = useState(false);
+  const autoLoaded = useRef(false);
 
   const load = useCallback(async (sec: string) => {
+    window.history.replaceState(null, "", `/top-stories${toTopStoriesQuery({ section: sec })}`);
     setLoading(true);
     setError("");
     try {
@@ -36,6 +41,12 @@ export default function TopStoriesPage() {
     }
   }, []);
 
+  useEffect(() => {
+    if (autoLoaded.current) return;
+    autoLoaded.current = true;
+    void load(section);
+  }, [load, section]);
+
   return (
     <div className="flex flex-col h-full">
       <PageHeader
@@ -44,8 +55,8 @@ export default function TopStoriesPage() {
       />
 
       {/* Controls */}
-      <div className="bg-white border-b border-[#e2e2e2] px-8 py-4 flex items-end gap-4 flex-wrap">
-        <div>
+      <div className="page-frame page-controls flex flex-wrap items-end gap-4 border-b border-black/10 bg-white/65 py-4">
+        <div className="min-w-[11rem]">
           <label htmlFor="ts-section" className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
             Section
           </label>
@@ -53,8 +64,7 @@ export default function TopStoriesPage() {
             id="ts-section"
             value={section}
             onChange={(e) => setSection(e.target.value)}
-            className="border border-[#e2e2e2] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#1a1a2e] focus:border-transparent"
-            style={{ minWidth: "160px" }}
+            className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#1a1a2e]"
           >
             {SECTIONS.map((s) => (
               <option key={s} value={s}>
@@ -83,7 +93,7 @@ export default function TopStoriesPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
+      <div className="page-frame page-content flex-1 overflow-y-auto">
         {error && (
           <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
             {error}
@@ -97,7 +107,7 @@ export default function TopStoriesPage() {
         )}
 
         {!loading && articles.length > 0 && (
-          <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
+          <div className="results-grid">
             {articles.map((a, i) => (
               <ArticleCard key={a.url ?? i} article={a} />
             ))}
@@ -114,9 +124,9 @@ export default function TopStoriesPage() {
 
 function SkeletonGrid() {
   return (
-    <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
+    <div className="results-grid">
       {Array.from({ length: 9 }).map((_, i) => (
-        <div key={i} className="bg-white rounded-xl overflow-hidden border border-[#e2e2e2]">
+        <div key={i} className="soft-panel overflow-hidden rounded-[1.4rem]">
           <div className="skeleton" style={{ height: "160px" }} />
           <div className="p-4 space-y-2">
             <div className="skeleton h-3 w-16" />

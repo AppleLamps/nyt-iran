@@ -87,7 +87,7 @@ export default function ArticleCard({ article }: { article: Article }) {
   const imgSrc = getImageUrl(article);
 
   return (
-    <article className="article-card bg-white rounded-xl overflow-hidden border border-[#e2e2e2]">
+    <article className="article-card soft-panel overflow-hidden rounded-[1.4rem]">
       {imgSrc && (
         <a href={href} target="_blank" rel="noreferrer" className="block overflow-hidden">
           <div className="relative w-full" style={{ paddingTop: "52%" }}>
@@ -101,37 +101,37 @@ export default function ArticleCard({ article }: { article: Article }) {
           </div>
         </a>
       )}
-      <div className="p-4">
+      <div className="p-4 sm:p-5">
         {section && (
           <span
-            className="inline-block mb-2 px-2 py-0.5 rounded text-white font-semibold"
+            className="mb-3 inline-block rounded-full px-3 py-1 font-semibold text-white"
             style={{
-              backgroundColor: "#1a1a2e",
+              backgroundColor: "#111827",
               fontSize: "10px",
-              letterSpacing: "0.1em",
+              letterSpacing: "0.12em",
               textTransform: "uppercase",
             }}
           >
             {section}
           </span>
         )}
-        <h3 className="font-bold leading-snug mb-2" style={{ fontFamily: "Georgia, serif", fontSize: "16px" }}>
+        <h3 className="mb-2 font-bold leading-snug text-[var(--color-ink-strong)]" style={{ fontFamily: "Georgia, serif", fontSize: "18px" }}>
           <a
             href={href}
             target="_blank"
             rel="noreferrer"
-            className="hover:text-red-700 transition-colors"
+            className="transition-colors hover:text-[var(--color-accent)]"
           >
             {title}
           </a>
         </h3>
         {summary && (
-          <p className="text-gray-600 leading-snug mb-3" style={{ fontSize: "13px" }}>
+          <p className="mb-4 text-[13px] leading-6 text-black/62 sm:text-sm">
             {summary}
           </p>
         )}
-        <div className="flex items-center justify-between" style={{ fontSize: "11px", color: "#9a9a9a" }}>
-          {byline && <span>{byline}</span>}
+        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-black/42">
+          {byline && <span className="max-w-full">{byline}</span>}
           {date && <span>{formatDate(date)}</span>}
         </div>
       </div>

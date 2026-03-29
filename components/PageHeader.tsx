@@ -6,15 +6,16 @@ export default function PageHeader({
   description?: string;
 }) {
   return (
-    <div className="border-b border-[#e2e2e2] bg-white px-8 py-6">
+    <div className="page-frame page-section border-b border-black/10 bg-[rgba(255,255,255,0.55)] py-6 sm:py-8">
+      <p className="text-[0.68rem] uppercase tracking-[0.28em] text-black/40">Reporting Desk</p>
       <h1
-        className="font-bold text-[#1a1a2e]"
-        style={{ fontFamily: "Georgia, serif", fontSize: "26px" }}
+        className="mt-2 font-bold text-[var(--color-ink-strong)]"
+        style={{ fontFamily: "Georgia, serif", fontSize: "clamp(2rem, 4vw, 3.5rem)", lineHeight: "0.95" }}
       >
         {title}
       </h1>
       {description && (
-        <p className="mt-1 text-gray-500" style={{ fontSize: "14px" }}>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-black/58 sm:text-base">
           {description}
         </p>
       )}

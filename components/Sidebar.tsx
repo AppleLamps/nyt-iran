@@ -2,117 +2,59 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const nav = [
-  {
-    href: "/top-stories",
-    label: "Top Stories",
-    icon: "◈",
-    desc: "Current section fronts",
-  },
-  {
-    href: "/article-search",
-    label: "Article Search",
-    icon: "⌕",
-    desc: "Search by keyword & filters",
-  },
-  {
-    href: "/most-popular",
-    label: "Most Popular",
-    icon: "↑",
-    desc: "Emailed, shared & viewed",
-  },
-  {
-    href: "/newswire",
-    label: "Newswire",
-    icon: "⚡",
-    desc: "Live wire feed",
-  },
-  {
-    href: "/archive",
-    label: "Archive",
-    icon: "◻",
-    desc: "Articles back to 1851",
-  },
-  {
-    href: "/rss",
-    label: "RSS Feeds",
-    icon: "⊕",
-    desc: "Section XML feeds",
-  },
-];
+import { NAV_ITEMS } from "@/app/lib/navigation";
 
 export default function Sidebar() {
   const pathname = usePathname();
 
   return (
     <aside
-      style={{ width: "220px", minWidth: "220px" }}
-      className="flex flex-col bg-[#1a1a2e] text-white h-full overflow-y-auto"
+      style={{ width: "292px", minWidth: "292px" }}
+      className="sticky top-0 flex h-screen flex-col overflow-y-auto border-r border-white/10 bg-[#111827] text-white"
     >
-      {/* Masthead */}
-      <div className="px-5 pt-7 pb-6 border-b border-white/10">
-        <div
-          className="text-white font-bold tracking-tight leading-none"
-          style={{ fontFamily: "Georgia, serif", fontSize: "13px", letterSpacing: "0.12em" }}
-        >
-          THE NEW YORK TIMES
-        </div>
-        <div
-          className="mt-1 text-white/40"
-          style={{ fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase" }}
-        >
-          API Explorer
-        </div>
+      <div className="border-b border-white/10 px-6 pb-6 pt-8">
+        <p className="text-[0.62rem] uppercase tracking-[0.32em] text-white/45">The New York Times</p>
+        <p className="mt-2 font-serif text-[1.85rem] leading-none text-white">API Explorer</p>
+        <p className="mt-3 max-w-[18rem] text-sm leading-6 text-white/60">
+          A newsroom-style console for live feeds, archives, and search-driven reporting.
+        </p>
       </div>
 
-      {/* Nav links */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {nav.map(({ href, label, icon, desc }) => {
-          const active = pathname === href || pathname?.startsWith(href + "/");
+      <nav className="flex-1 space-y-2 px-4 py-5">
+        {NAV_ITEMS.map((item) => {
+          const active =
+            item.href === "/" ? pathname === "/" : pathname === item.href || pathname?.startsWith(`${item.href}/`);
+
           return (
             <Link
-              key={href}
-              href={href}
-              className={`group flex items-start gap-3 px-3 py-3 rounded-lg transition-all ${
+              key={item.href}
+              href={item.href}
+              className={`group block rounded-2xl border px-4 py-4 transition-all ${
                 active
-                  ? "bg-white/10 text-white"
-                  : "text-white/60 hover:bg-white/5 hover:text-white/90"
+                  ? "border-white/18 bg-white/10 text-white shadow-[0_18px_40px_rgba(0,0,0,0.14)]"
+                  : "border-white/0 text-white/68 hover:border-white/10 hover:bg-white/[0.04] hover:text-white/92"
               }`}
             >
-              <span
-                className={`text-lg leading-none mt-0.5 flex-shrink-0 ${
-                  active ? "text-red-400" : "text-white/30 group-hover:text-white/50"
-                }`}
-              >
-                {icon}
-              </span>
-              <div>
-                <div
-                  className="font-semibold leading-none"
-                  style={{ fontSize: "13px" }}
-                >
-                  {label}
-                </div>
-                <div
-                  className="mt-1 leading-none text-white/40"
-                  style={{ fontSize: "11px" }}
-                >
-                  {desc}
-                </div>
+              <p className={`text-[0.62rem] uppercase tracking-[0.24em] ${active ? "text-[#f87171]" : "text-white/35"}`}>
+                {item.eyebrow}
+              </p>
+              <div className="mt-2 flex items-baseline justify-between gap-3">
+                <span className="font-serif text-[1.35rem] leading-none">{item.shortLabel}</span>
+                <span className={`text-sm ${active ? "text-white/75" : "text-white/30 group-hover:text-white/55"}`}>
+                  Open
+                </span>
               </div>
+              <p className="mt-2 text-sm leading-5 text-white/55">{item.description}</p>
             </Link>
           );
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="px-5 py-4 border-t border-white/10">
-        <div className="text-white/25" style={{ fontSize: "10px", lineHeight: "1.4" }}>
-          Data via NYT APIs
-          <br />
-          © The New York Times
-        </div>
+      <div className="border-t border-white/10 px-6 py-5">
+        <p className="text-xs uppercase tracking-[0.24em] text-white/25">Desk note</p>
+        <p className="mt-2 text-sm leading-6 text-white/42">
+          Live data depends on your `NYT_API_KEY`. RSS remains available without one.
+        </p>
       </div>
     </aside>
   );

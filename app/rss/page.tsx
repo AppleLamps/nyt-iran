@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import ExportButton from "@/components/ExportButton";
+import { parseRssState, toRssQuery } from "@/app/lib/explorer-url-state.mjs";
 
 const RSS_SECTIONS = [
   "HomePage", "Africa", "Americas", "ArtandDesign", "Arts", "AsiaPacific",
@@ -44,13 +45,17 @@ function stripHtml(html: string): string {
 }
 
 export default function RSSPage() {
-  const [section, setSection] = useState("HomePage");
+  const [section, setSection] = useState(() =>
+    typeof window === "undefined" ? "HomePage" : parseRssState(window.location.search).section,
+  );
   const [items, setItems] = useState<RSSItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fetched, setFetched] = useState(false);
+  const autoLoaded = useRef(false);
 
-  async function load() {
+  const load = useCallback(async () => {
+    window.history.replaceState(null, "", `/rss${toRssQuery({ section })}`);
     setLoading(true);
     setError("");
     try {
@@ -64,7 +69,13 @@ export default function RSSPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [section]);
+
+  useEffect(() => {
+    if (autoLoaded.current) return;
+    autoLoaded.current = true;
+    void load();
+  }, [load]);
 
   return (
     <div className="flex flex-col h-full">
@@ -74,8 +85,8 @@ export default function RSSPage() {
       />
 
       {/* Controls */}
-      <div className="bg-white border-b border-[#e2e2e2] px-8 py-4 flex items-end gap-4 flex-wrap">
-        <div>
+      <div className="page-frame page-controls flex flex-wrap items-end gap-4 border-b border-black/10 bg-white/65 py-4">
+        <div className="min-w-[13rem]">
           <label htmlFor="rss-section" className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
             Section
           </label>
@@ -110,7 +121,7 @@ export default function RSSPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
+      <div className="page-frame page-content flex-1 overflow-y-auto">
         {error && (
           <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
             {error}
@@ -120,7 +131,7 @@ export default function RSSPage() {
         {loading && (
           <div className="space-y-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-xl p-4 border border-[#e2e2e2] flex gap-4">
+              <div key={i} className="soft-panel flex gap-4 rounded-[1.4rem] p-4">
                 <div className="skeleton flex-shrink-0" style={{ width: "100px", height: "70px", borderRadius: "8px" }} />
                 <div className="flex-1 space-y-2">
                   <div className="skeleton h-5 w-full" />
@@ -143,22 +154,20 @@ export default function RSSPage() {
             {items.map((item, i) => (
               <article
                 key={item.link || i}
-                className="article-card bg-white rounded-xl border border-[#e2e2e2] flex overflow-hidden"
+                className="article-card soft-panel flex flex-col overflow-hidden rounded-[1.4rem] sm:flex-row"
               >
                 {item.mediaUrl && (
                   <a
                     href={item.link}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex-shrink-0 block overflow-hidden"
-                    style={{ width: "140px" }}
+                    className="block overflow-hidden sm:w-[140px] sm:flex-shrink-0"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={item.mediaUrl}
                       alt={item.title}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                      style={{ height: "100px" }}
+                      className="h-[210px] w-full object-cover transition-transform duration-300 hover:scale-105 sm:h-full"
                     />
                   </a>
                 )}

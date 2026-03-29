@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import PageHeader from "@/components/PageHeader";
 import ArticleCard, { Article } from "@/components/ArticleCard";
 import ExportButton from "@/components/ExportButton";
+import { parseNewswireState, toNewswireQuery } from "@/app/lib/explorer-url-state.mjs";
 
 const SOURCES = [
   { value: "all", label: "All (NYT + INYT)" },
@@ -14,10 +15,18 @@ const SOURCES = [
 const LIMITS = [20, 40, 60, 80, 100];
 
 export default function NewswirePage() {
-  const [source, setSource] = useState("all");
-  const [section, setSection] = useState("all");
-  const [limit, setLimit] = useState(20);
-  const [offset, setOffset] = useState(0);
+  const [source, setSource] = useState(() =>
+    typeof window === "undefined" ? "all" : parseNewswireState(window.location.search).source,
+  );
+  const [section, setSection] = useState(() =>
+    typeof window === "undefined" ? "all" : parseNewswireState(window.location.search).section,
+  );
+  const [limit, setLimit] = useState(() =>
+    typeof window === "undefined" ? 20 : parseNewswireState(window.location.search).limit,
+  );
+  const [offset, setOffset] = useState(() =>
+    typeof window === "undefined" ? 0 : parseNewswireState(window.location.search).offset,
+  );
 
   const [sections, setSections] = useState<Array<{ section: string; display_name: string }>>([]);
   const [articles, setArticles] = useState<Article[]>([]);
@@ -25,6 +34,7 @@ export default function NewswirePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fetched, setFetched] = useState(false);
+  const autoLoaded = useRef(false);
 
   // Load section list on mount
   useEffect(() => {
@@ -36,7 +46,12 @@ export default function NewswirePage() {
       .catch(() => {});
   }, []);
 
-  async function load(off: number = 0) {
+  const load = useCallback(async (off: number = 0) => {
+    window.history.replaceState(
+      null,
+      "",
+      `/newswire${toNewswireQuery({ source, section, limit, offset: off })}`,
+    );
     setLoading(true);
     setError("");
     setOffset(off);
@@ -53,7 +68,13 @@ export default function NewswirePage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [limit, section, source]);
+
+  useEffect(() => {
+    if (autoLoaded.current) return;
+    autoLoaded.current = true;
+    void load(0);
+  }, [load]);
 
   const canPrev = offset > 0;
   const canNext = offset + limit < total;
@@ -66,8 +87,8 @@ export default function NewswirePage() {
       />
 
       {/* Controls */}
-      <div className="bg-white border-b border-[#e2e2e2] px-8 py-4 flex items-end gap-4 flex-wrap">
-        <div>
+      <div className="page-frame page-controls flex flex-wrap items-end gap-4 border-b border-black/10 bg-white/65 py-4">
+        <div className="min-w-[10rem]">
           <label htmlFor="nw-source" className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
             Source
           </label>
@@ -83,7 +104,7 @@ export default function NewswirePage() {
           </select>
         </div>
 
-        <div>
+        <div className="min-w-[12rem]">
           <label htmlFor="nw-section" className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
             Section
           </label>
@@ -101,7 +122,7 @@ export default function NewswirePage() {
           </select>
         </div>
 
-        <div>
+        <div className="min-w-[8rem]">
           <label htmlFor="nw-limit" className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
             Results
           </label>
@@ -135,7 +156,7 @@ export default function NewswirePage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-8 py-6">
+      <div className="page-frame page-content flex-1 overflow-y-auto">
         {error && (
           <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
             {error}
@@ -152,7 +173,7 @@ export default function NewswirePage() {
 
         {!loading && articles.length > 0 && (
           <>
-            <div className="grid gap-5 mb-6" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
+            <div className="results-grid mb-6">
               {articles.map((a, i) => (
                 <ArticleCard key={(a as { uri?: string }).uri ?? i} article={a} />
               ))}
@@ -194,9 +215,9 @@ export default function NewswirePage() {
 
 function SkeletonGrid() {
   return (
-    <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))" }}>
+    <div className="results-grid">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="bg-white rounded-xl overflow-hidden border border-[#e2e2e2]">
+        <div key={i} className="soft-panel overflow-hidden rounded-[1.4rem]">
           <div className="skeleton" style={{ height: "160px" }} />
           <div className="p-4 space-y-2">
             <div className="skeleton h-3 w-16" />
